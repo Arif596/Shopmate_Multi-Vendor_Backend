@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const AdminUserCreation = require("./Utils/seedAdmin");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const CreatTables = require("./Utils/CreateTables");
@@ -12,6 +13,7 @@ const OrderRoutes = require("./Routes/OrderRoutes");
 const wishlistRoutes = require("./Routes/wishlistRoutes");
 const SubscribeEmail = require("./Routes/subscribeRoutes");
 const ContactRoutes = require("./Routes/contactRoutes");
+const vendorRequestRoutes = require("./Routes/vendorRequestRoutes");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const database = require("./Database/db");
@@ -22,10 +24,11 @@ app.use(
     origin: [
       process.env.FRONTEND_URL,
       process.env.DASHBOARD_URL,
+      process.env.VENDOR_DASHBOARD_URL,
       "http://localhost:3000",
       "http://localhost:4200",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),
 );
@@ -113,6 +116,16 @@ app.use((req, res, next) => {
   console.log("Origin:", req.headers.origin);
   next(); // ✅ yeh zaroori hai - warna request stuck ho jati hai
 });
+// DB mode switch (local <-> live)
+app.get("/api/db-mode", (req, res) => {
+  res.json({ mode: database.getMode() });
+});
+
+app.post("/api/db-mode", (req, res) => {
+  const { mode } = req.body; // "local" ya "live"
+  database.setMode(mode);
+  res.json({ mode: database.getMode() });
+});
 app.use("/api/v1/auth", Authroutes);
 app.use("/api/v1/product", ProdcutRoutes);
 app.use("/api/v1/admin", AdminRoutes);
@@ -120,8 +133,23 @@ app.use("/api/v1/order", OrderRoutes);
 app.use("/api/v1/wishlist", wishlistRoutes);
 app.use("/api/v1/email", SubscribeEmail);
 app.use("/api/v1/contact", ContactRoutes);
+app.use("/api/v1/vendor-requests", vendorRequestRoutes);
 
-CreatTables();
+// CreatTables();
+// (async () => {
+//   await database.runOn("local", CreatTables);
+//   await database.runOn("live", CreatTables);
+// })();
+app.locals.databaseReady = (async () => {
+  for (const dbMode of ["local", "live"]) {
+    await database.runOn(dbMode, async () => {
+      await CreatTables();
+      await AdminUserCreation();
+    });
+
+    console.log(`${dbMode}: tables and admin initialized`);
+  }
+})();
 app.use(errorMiddleware);
 app.get("/", (req, res) => {
   res.send("API is alive & working");

@@ -1,9 +1,12 @@
 const jwt = require("jsonwebtoken");
+
 const sendToken = (user, statusCode, message, res) => {
   const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
+
   const cookiesName = user.role === "Admin" ? "adminToken" : "userToken";
+
   res
     .status(statusCode)
     .cookie(cookiesName, token, {
@@ -21,4 +24,5 @@ const sendToken = (user, statusCode, message, res) => {
       message,
     });
 };
+
 module.exports = sendToken;

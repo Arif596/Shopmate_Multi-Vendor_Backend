@@ -7,6 +7,8 @@ const {
   getAllUser,
   DeleteUsers,
   DashbaordStats,
+  makeVendor,
+  updateUser
 } = require("../Controller/AdminController");
 const router = express.Router();
 
@@ -27,5 +29,12 @@ router.get(
   isAuthenticated,
   authorizedRoles("Admin"),
   DashbaordStats
-); // Delete User
+); // Get Dashboard Stats
+router.patch(
+  "/users/:id/make-vendor",
+  isAuthenticated,
+  authorizedRoles("Admin"),
+  makeVendor,
+);
+router.put("/users/:id", isAuthenticated, authorizedRoles("Admin"), updateUser);
 module.exports = router;
