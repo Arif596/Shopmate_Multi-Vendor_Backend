@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { isAuthenticated, authorizedRoles } = require("../Middlewares/authMiddleware");
+const { isAuthenticated, authorizedRoles } = require("../Middlewares/AuthMiddleware");
 const c = require("../Controller/vendorRequestController");
 
 router.post("/", isAuthenticated, c.createVendorRequest);
